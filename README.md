@@ -292,3 +292,6 @@ The gem is available as open source under the terms of the [MIT License](https:/
 ## Copyright
 
 (c) 2021 [Matsukei Co.,Ltd](http://www.matsukei.co.jp).
+(c) 2024 [hiroshi kiumra](https://github.com/hiroshikimura/).
+
+This software includes modifications made by [hiroshi kimura] to the original software licensed under the MIT License. Modified portions of this software are [download fonts at runtime without including them].
