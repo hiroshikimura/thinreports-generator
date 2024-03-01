@@ -1,4 +1,7 @@
 # frozen_string_literal: true
+require 'fileutils'
+require 'zip'
+require 'net/http'
 
 module Thinreports
   module BasicReport
@@ -23,7 +26,7 @@ module Thinreports
 
           def setup_fonts
             # Install built-in fonts.
-            BUILTIN_FONTS.each do |font_name, font_path|
+            setup_default_fonts.each do |font_name, font_path|
               install_font(font_name, font_path)
             end
 
@@ -82,6 +85,74 @@ module Thinreports
             return false unless font.key?(font_style)
 
             font[font_style] != font[:normal]
+          end
+
+          def setup_default_fonts
+            @setup_default_fonts ||= build_fonts_config
+          end
+
+          def build_fonts_config
+            current_config.each_with_object({}) do |entry, hash|
+              hash.merge! build_font_config(entry)
+            end.then do |h|
+              BUILTIN_FONTS.merge(h)
+            end
+          end
+
+          def build_font_config(entry)
+            h = index_by(entry[:fonts]){ |e| File.basename(e[:file_name]) }
+            download_fonts(entry[:font_uri]).
+              select { |e| h.key?(File.basename(e)) }.
+              each_with_object({}) do |font_path, hash|
+                hash[(h[File.basename(font_path)] || {})[:font_name] ] = font_path
+              end
+          end
+
+          def index_by(array)
+            array.each_with_object({}) do |e, h|
+              h[ yield(e)] = e
+            end
+          end
+
+          def download_fonts(archive_file)
+            uri = URI.parse(archive_file)
+            tempdir = current_temp_dir
+            FileUtils.mkdir_p tempdir
+            dst = [tempdir, File.basename(uri.path)].join(File::SEPARATOR)
+            File.open(dst, 'wb') { |f| f.write Net::HTTP.get(uri) }
+
+            # extract & configure
+            Zip::File.open(dst) do |zip|
+              zip.map do |entry|
+                filename = File.basename(entry.name)
+                tmpname = [tempdir, filename].join(File::SEPARATOR)
+                zip.extract(entry, tmpname) { true }
+                tmpname
+              end
+            end.tap { FileUtils.rm_rf dst }
+          end
+
+          def current_config
+            Thinreports.config.fontset.then { |e| e.size > 0 ? e : default_font_config }
+          end
+
+          def current_temp_dir
+            @current_temp_dir ||= -> do
+              rooter = Object.const_get('Rails') rescue Thinreports
+              rooter.root.join((Thinreports.config.tempdir || 'fonts').gsub(/#{File::SEPARATOR}{0,}$/, ''))
+            end.call
+          end
+
+          def default_font_config
+            [{
+              font_uri: 'https://moji.or.jp/wp-content/ipafont/IPAfont/IPAfont00303.zip',
+              fonts: [
+                { font_name: 'IPAGothic', file_name: 'ipag.ttf' },
+                { font_name: 'IPAPGothic', file_name: 'ipagp.ttf' },
+                { font_name: 'IPAMincho', file_name: 'ipam.ttf' },
+                { font_name: 'IPAPMincho', file_name: 'ipamp.ttf' },
+              ]
+            }]
           end
         end
       end

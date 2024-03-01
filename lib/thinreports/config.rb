@@ -32,5 +32,32 @@ module Thinreports
     def fallback_fonts=(font_names)
       @fallback_fonts = font_names.is_a?(Array) ? font_names : [font_names]
     end
+
+    def tempdir
+      @tempdir ||= 'fonts'
+    end
+
+    def tempdir=(tempdir)
+      @tempdir = tempdir
+    end
+
+    def fontset
+      @fontset ||= []
+    end
+
+    # @param [Array<Hash>]
+    # @example
+    #   config.fonts = [{
+    #     font_uri: 'http://example.com/path/to/font.ttf.zip',
+    #     fonts: [
+    #       { font_name: 'IPAGothic', file_name: 'ipag.ttf' },
+    #       { font_name: 'IPAPGothic', file_name: 'ipagp.ttf' },
+    #       { font_name: 'IPAMincho', file_name: 'ipam.ttf' },
+    #       { font_name: 'IPAPMincho', file_name: 'ipamp.ttf' },
+    #     ]
+    #   }]
+    def fontset=(font_set)
+      @fontset = font_set
+    end
   end
 end
