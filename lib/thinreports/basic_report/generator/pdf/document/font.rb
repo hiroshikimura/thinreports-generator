@@ -119,7 +119,7 @@ module Thinreports
             tempdir = current_temp_dir
             FileUtils.mkdir_p tempdir
             dst = [tempdir, File.basename(uri.path)].join(File::SEPARATOR)
-            File.open(dst, 'wb') { |f| f.write Net::HTTP.get(uri) }
+            progressive_download(uri, dst)
 
             # extract & configure
             Zip::File.open(dst) do |zip|
@@ -130,6 +130,22 @@ module Thinreports
                 tmpname
               end
             end.tap { FileUtils.rm_rf dst }
+          end
+
+          def progressive_download(uri, dest)
+            File.open(dest, "wb") do |file|
+              http = Net::HTTP.new(uri.hostname, uri.port)
+              http.use_ssl = true
+              http.start
+              http.get("#{uri.path}?#{uri.query}") do |body_segment|
+                file.write body_segment
+              end
+              http.finish
+            end
+          end
+
+          def download(uri, dest)
+            File.open(dest, 'wb') { |f| f.write Net::HTTP.get(uri) }
           end
 
           def current_config
