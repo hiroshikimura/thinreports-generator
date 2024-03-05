@@ -45,17 +45,9 @@ module Thinreports
       @fontset ||= []
     end
 
-    # @param [Array<Hash>]
+    # @param [Array<String>]
     # @example
-    #   config.fonts = [{
-    #     font_uri: 'http://example.com/path/to/font.ttf.zip',
-    #     fonts: [
-    #       { font_name: 'IPAGothic', file_name: 'ipag.ttf' },
-    #       { font_name: 'IPAPGothic', file_name: 'ipagp.ttf' },
-    #       { font_name: 'IPAMincho', file_name: 'ipam.ttf' },
-    #       { font_name: 'IPAPMincho', file_name: 'ipamp.ttf' },
-    #     ]
-    #   }]
+    #   config.fonts = ['http://example.com/path/to/font.ttf.zip']
     def fontset=(font_set)
       @fontset = font_set
     end

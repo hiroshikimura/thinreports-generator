@@ -24,9 +24,12 @@ module Thinreports
             'Times New Roman' => 'Times-Roman'
           }.freeze
 
+          @@mutex = Mutex.new
+
           def setup_fonts
+            setup_default_fonts
             # Install built-in fonts.
-            setup_default_fonts.each do |font_name, font_path|
+            BUILTIN_FONTS.each do |font_name, font_path|
               install_font(font_name, font_path)
             end
 
@@ -88,24 +91,15 @@ module Thinreports
           end
 
           def setup_default_fonts
-            @setup_default_fonts ||= build_fonts_config
-          end
-
-          def build_fonts_config
-            current_config.each_with_object({}) do |entry, hash|
-              hash.merge! build_font_config(entry)
-            end.then do |h|
-              BUILTIN_FONTS.merge(h)
+            @@mutex.synchronize do
+              current_config.map do |archive_url|
+                build_font_config(archive_url)
+              end
             end
           end
 
-          def build_font_config(entry)
-            h = index_by(entry[:fonts]){ |e| File.basename(e[:file_name]) }
-            download_fonts(entry[:font_uri]).
-              select { |e| h.key?(File.basename(e)) }.
-              each_with_object({}) do |font_path, hash|
-                hash[(h[File.basename(font_path)] || {})[:font_name] ] = font_path
-              end
+          def build_font_config(archive_url)
+            download_fonts(archive_url)
           end
 
           def index_by(array)
@@ -119,17 +113,17 @@ module Thinreports
             tempdir = current_temp_dir
             FileUtils.mkdir_p tempdir
             dst = [tempdir, File.basename(uri.path)].join(File::SEPARATOR)
-            progressive_download(uri, dst)
+            # すでにあるので引っ張り出さない
+            progressive_download(uri, dst) unless File.exist? dst
 
-            # extract & configure
+            # extract
             Zip::File.open(dst) do |zip|
               zip.map do |entry|
                 filename = File.basename(entry.name)
                 tmpname = [tempdir, filename].join(File::SEPARATOR)
-                zip.extract(entry, tmpname) { true }
-                tmpname
+                zip.extract(entry, tmpname) { true } unless File.exist? tmpname
               end
-            end.tap { FileUtils.rm_rf dst }
+            end
           end
 
           def progressive_download(uri, dest)
@@ -153,22 +147,11 @@ module Thinreports
           end
 
           def current_temp_dir
-            @current_temp_dir ||= -> do
-              rooter = Object.const_get('Rails') rescue Thinreports
-              rooter.root.join((Thinreports.config.tempdir || 'fonts').gsub(/#{File::SEPARATOR}{0,}$/, ''))
-            end.call
+            @current_temp_dir ||= Thinreports.root.join(Thinreports.config.tempdir)
           end
 
           def default_font_config
-            [{
-              font_uri: 'https://moji.or.jp/wp-content/ipafont/IPAfont/IPAfont00303.zip',
-              fonts: [
-                { font_name: 'IPAGothic', file_name: 'ipag.ttf' },
-                { font_name: 'IPAPGothic', file_name: 'ipagp.ttf' },
-                { font_name: 'IPAMincho', file_name: 'ipam.ttf' },
-                { font_name: 'IPAPMincho', file_name: 'ipamp.ttf' },
-              ]
-            }]
+            ['https://moji.or.jp/wp-content/ipafont/IPAfont/IPAfont00303.zip']
           end
         end
       end
