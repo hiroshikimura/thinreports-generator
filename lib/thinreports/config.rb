@@ -32,5 +32,24 @@ module Thinreports
     def fallback_fonts=(font_names)
       @fallback_fonts = font_names.is_a?(Array) ? font_names : [font_names]
     end
+
+    def tempdir
+      @tempdir ||= 'fonts'
+    end
+
+    def tempdir=(tempdir)
+      @tempdir = tempdir
+    end
+
+    def fontset
+      @fontset ||= []
+    end
+
+    # @param [Array<String>]
+    # @example
+    #   config.fonts = ['http://example.com/path/to/font.ttf.zip']
+    def fontset=(font_set)
+      @fontset = font_set
+    end
   end
 end

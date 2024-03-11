@@ -28,4 +28,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'bigdecimal'
   s.add_dependency 'matrix'
   s.add_dependency 'rexml'
+  s.add_dependency 'rubyzip'
 end

@@ -7,11 +7,16 @@ class Thinreports::BasicReport::Generator::PDF::TestFont < Minitest::Test
 
   Font = Thinreports::BasicReport::Generator::PDF::Font
 
+  def setup
+    FileUtils.rm_rf Thinreports.root.join(Thinreports.config.tempdir)
+  end
+
   def teardown
     # Reset font settings
     Thinreports.configure do |c|
       c.fallback_fonts = []
     end
+    FileUtils.rm_rf Thinreports.root.join(Thinreports.config.tempdir)
   end
 
   def test_setup_fonts
