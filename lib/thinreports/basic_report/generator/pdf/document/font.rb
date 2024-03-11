@@ -99,6 +99,8 @@ module Thinreports
           end
 
           def build_font_config(archive_url)
+            # fontをすでに初期化済みであれば、初期化しない
+            return if is_downloaded?
             download_fonts(archive_url)
           end
 
@@ -112,7 +114,7 @@ module Thinreports
             uri = URI.parse(archive_file)
             tempdir = current_temp_dir
             FileUtils.mkdir_p tempdir
-            dst = [tempdir, File.basename(uri.path)].join(File::SEPARATOR)
+            dst = [tempdir, "#{SecureRandom.uuid.to_s}_#{File.basename(uri.path)}"].join(File::SEPARATOR)
             # すでにあるので引っ張り出さない
             progressive_download(uri, dst) unless File.exist? dst
 
@@ -120,10 +122,18 @@ module Thinreports
             Zip::File.open(dst) do |zip|
               zip.map do |entry|
                 filename = File.basename(entry.name)
-                tmpname = [tempdir, filename].join(File::SEPARATOR)
+                tmpname = [current_temp_dir, filename].join(File::SEPARATOR)
                 zip.extract(entry, tmpname) { true } unless File.exist? tmpname
               end
             end
+
+            FileUtils.rm_rf dst
+          end
+
+          def is_downloaded?
+            # font dir created? and all font extract?
+            File.exist?(current_temp_dir) &&
+              Dir.glob("#{current_temp_dir}/*.ttf").then { |e| e.size.positive? && e.all? { |path| BUILTIN_FONTS.values.include?(path) } }
           end
 
           def progressive_download(uri, dest)
